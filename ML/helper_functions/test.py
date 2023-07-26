@@ -21,6 +21,7 @@ class Test:
         p_tot = 0
         r_tot = 0
         f1_tot = 0
+        l_tot = 0
         n = 0
         with torch.inference_mode():
             for X, y in self.test_dataloader:
@@ -28,8 +29,9 @@ class Test:
                 X = F.to_tensor(X, padding_value=1).to("cuda")
                 y = torch.tensor(y).to("cuda")
                 preds = torch.argmax(torch.softmax(self.model(X), dim=1), dim=1)
+                loss = self.criteria(preds, y.view(-1, 1).squeeze(1))
                 results = classification_report(
-                    preds, y.view(-1, 1).squeeze(1), class_names=["0", "1"]
+                    preds.cpu(), y.view(-1, 1).squeeze(1).cpu(), output_dict=True
                 )
                 precision = results["weighted avg"]["precision"]
                 recall = results["weighted avg"]["recall"]
@@ -39,10 +41,12 @@ class Test:
                 p_tot += precision
                 r_tot += recall
                 f1_tot += f1score
+                l_tot += loss.item()
                 n += 1
         return {
             f"{self.name} precision": p_tot / n,
             f"{self.name} recall": r_tot / n,
             f"{self.name} f1-score": f1_tot / n,
             f"{self.name} accuracy": a_tot / n,
+            f"{self.name} loss": l_tot / n,
         }

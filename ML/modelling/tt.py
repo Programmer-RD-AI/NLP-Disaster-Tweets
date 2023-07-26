@@ -7,7 +7,7 @@ class TL(nn.Module):
         num_classes: int = 2,
         input_dim: int = 768,
         classifier_head: torchtext.models = RobertaClassificationHead,
-        model: torchtext.models = XLMR_BASE_ENCODER,
+        model: torchtext.models = XLMR_LARGE_ENCODER,
     ) -> None:
         super().__init__()
         self.num_classes = num_classes
