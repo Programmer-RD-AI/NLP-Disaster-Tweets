@@ -24,10 +24,13 @@ class Test:
         n = 0
         with torch.inference_mode():
             for X, y in self.test_dataloader:
-                X = torch.tensor(X).to("cuda").view(1, -1)
+                y = y[0]
+                X = F.to_tensor(X, padding_value=1).to("cuda")
                 y = torch.tensor(y).to("cuda")
                 preds = torch.argmax(torch.softmax(self.model(X), dim=1), dim=1)
-                results = classification_report(preds, y, class_names=["0", "1"])
+                results = classification_report(
+                    preds, y.view(-1, 1).squeeze(1), class_names=["0", "1"]
+                )
                 precision = results["weighted avg"]["precision"]
                 recall = results["weighted avg"]["recall"]
                 f1score = results["weighted avg"]["f1-score"]

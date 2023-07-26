@@ -4,12 +4,12 @@ train_data_loader, test_data_loader, valid_data_loader = Load_Data(
     Main_DL,
     Valid_Loader,
     [
-        "/media/user/Main/Programmer-RD-AI/Programming/Learning/JS/NLP-Disaster-Tweets/learning/train.csv",
-        2,
+        "/media/user/Main/Programmer-RD-AI/Programming/Learning/JS/NLP-Disaster-Tweets/ML/data/train.csv",
+        32,
         Transformer().transform(),
     ],
     [
-        "/media/user/Main/Programmer-RD-AI/Programming/Learning/JS/NLP-Disaster-Tweets/learning/test.csv",
+        "/media/user/Main/Programmer-RD-AI/Programming/Learning/JS/NLP-Disaster-Tweets/ML/data/test.csv",
         1,
     ],
     0.125,

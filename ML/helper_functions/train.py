@@ -1,5 +1,6 @@
 from ML import *
 import torchtext.functional as F
+from ML.helper_functions.test import *
 
 
 class Train:
@@ -33,12 +34,12 @@ class Train:
         for _ in iterator:
             torch.cuda.empty_cache()
             for i, (X, y) in enumerate(self.train_dataloader):
+                y = y[0]
                 torch.cuda.empty_cache()
-                X = torch.tensor(X).to("cuda").view(1, -1)
-                y = torch.tensor(y).to("cuda")
-                print(X.shape, y.shape)
+                X = F.to_tensor(X, padding_value=1).to("cuda")
+                y = torch.tensor(y).to(dtype=torch.long, device="cuda")
                 self.optimizer.zero_grad()
-                loss = self.criterion(self.model(X), y)
+                loss = self.criterion(self.model(X), y.view(-1, 1).squeeze(1))
                 loss.backward()
                 self.optimizer.step()
                 iterator.set_description(f"{i}/{len(self.train_dataloader)}")

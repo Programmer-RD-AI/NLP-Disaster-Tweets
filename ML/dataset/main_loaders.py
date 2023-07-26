@@ -9,7 +9,7 @@ class Main_DL(Loader):
         test_split: float = 0.125,
         seed: int = 42,
         batch_size: int = 32,
-        **kwargs
+        **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.X = self.data["text"].to_numpy()
@@ -27,36 +27,39 @@ class Main_DL(Loader):
             np.array(self.y_test),
         )
         self.batch_size = batch_size
-        # self.get_batches()
-        
+        self.get_batches()
 
     def get_batches(self):
         X = self.X_train if self.train else self.X_test
         y = self.y_train if self.train else self.y_test
         X_batches = []
         y_batches = []
-        for i in range(0, len(X), self.batch_size):
+        iterator = tqdm(
+            range(0, (round(len(X) / self.batch_size) - 1) * self.batch_size, self.batch_size)
+        )
+        for i in iterator:
             X_iter = X[i : i + self.batch_size]
             y_iter = y[i : i + self.batch_size]
-            X_batches.append(X_iter)
-            y_batches.append(y_iter)
+            new_X_iter = []
+            for j in X_iter:
+                new_X_iter.append(self.transform(j))
+            X_batches.append(new_X_iter)
+            y_batches.append([y_iter])
         if self.train:
-            self.X_train = F.to_tensor(X_batches, padding_value=1)
+            self.X_train = X_batches
             self.y_train = np.array(y_batches)
         else:
-            self.X_test = F.to_tensor(X_batches, padding_value=1)
+            self.X_test = X_batches
             self.y_test = np.array(y_batches)
-
-        print(X_batches[0], y_batches[0])
 
     def __getitem__(self, index) -> Tuple[torch.tensor, torch.tensor]:
         if self.train:
             return (
-                self.transform(self.X_train[index]),
+                self.X_train[index],
                 [self.y_train[index]],
             )
         return (
-            self.transform(self.X_test[index]),
+            self.X_test[index],
             [self.y_test[index]],
         )
 
