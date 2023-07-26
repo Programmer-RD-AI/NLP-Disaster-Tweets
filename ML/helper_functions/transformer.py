@@ -7,9 +7,9 @@ class Transformer:
         padding_idx: int = 1,
         beg_idx: int = 0,
         end_idx: int = 2,
-        max_seq_len: int = 256,
-        vocab_path: str = r"https://download.pytorch.org/models/text/xlmr.vocab.pt",
-        spm_model_path: str = r"https://download.pytorch.org/models/text/xlmr.sentencepiece.bpe.model",
+        max_seq_len: int = 256 - 2,
+        vocab_path=r"https://download.pytorch.org/models/text/xlmr.vocab.pt",
+        spm_model_path=r"https://download.pytorch.org/models/text/xlmr.sentencepiece.bpe.model",
         tokenizer: torchtext.transforms = SentencePieceTokenizer,
         vocab_transform: torchtext.transforms = VocabTransform,
         truncate: torchtext.transforms = Truncate,
@@ -24,13 +24,13 @@ class Transformer:
         self.vocab_transform = vocab_transform
         self.truncate = truncate
 
-    def transform(self):
-        t = torchtext.transforms.Compose(
-            self.tokenizer(self.vocab_path),
-            self.vocab_transform(self.spm_model_path),
+    def transform(self) -> torchtext.transforms.Sequential:
+        t = torchtext.transforms.Sequential(
+            self.tokenizer(self.spm_model_path),
+            self.vocab_transform(load_state_dict_from_url(self.vocab_path)),
             self.truncate(self.max_seq_len),
             AddToken(self.beg_idx, begin=True),
-            AddToken(self.end_idx, end=True),
+            AddToken(self.end_idx, begin=False),
         )
         return t
 

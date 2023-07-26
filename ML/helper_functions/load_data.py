@@ -26,33 +26,31 @@ class Load_Data:
     def ld(self) -> Tuple[DataLoader, DataLoader, DataLoader]:
         self.train_data_loader = DataLoader(
             self.dataset_main(
-                self.main_path,
-                self.main_transform,
+                path=self.main_path,
+                transform=self.main_transform,
                 train=True,
                 test_split=self.test_split,
                 seed=self.seed,
             ),
-            batch_size=self.main_batch_size,
+            batch_size=None,
             shuffle=True,
             num_workers=round(os.cpu_count() / 2),
         )
         self.test_data_loader = DataLoader(
             self.dataset_main(
-                self.main_path,
-                self.main_transform,
+                path=self.main_path,
+                transform=self.main_transform,
                 train=False,
                 test_split=self.test_split,
                 seed=self.seed,
             ),
-            batch_size=self.main_batch_size,
+            batch_size=None,
             shuffle=True,
             num_workers=round(os.cpu_count() / 2),
         )
         self.valid_data_loader = DataLoader(
-            self.dataset_valid(
-                self.valid_path,
-            ),
-            batch_size=self.valid_batch_size,
+            self.dataset_valid(self.valid_path, None),
+            batch_size=None,
             shuffle=False,
             num_workers=round(os.cpu_count() / 2),
         )

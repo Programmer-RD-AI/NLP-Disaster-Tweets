@@ -1,0 +1,75 @@
+{
+    "os": "Linux-5.15.0-76-generic-x86_64-with-glibc2.32",
+    "python": "3.11.3",
+    "heartbeatAt": "2023-07-26T10:53:17.106601",
+    "startedAt": "2023-07-26T10:53:15.655561",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/media/user/Main/Programmer-RD-AI/Programming/Learning/JS/NLP-Disaster-Tweets/run.py",
+    "codePath": "run.py",
+    "git": {
+        "remote": "https://github.com/Programmer-RD-AI/NLP-Disaster-Tweets.git",
+        "commit": "e3f36498a4acb378a0c9313dae767df59d88456c"
+    },
+    "email": "79456372+Programmer-RD-AI@users.noreply.github.com",
+    "root": "/media/user/Main/Programmer-RD-AI/Programming/Learning/JS/NLP-Disaster-Tweets",
+    "host": "programmer-rd-ai",
+    "username": "user",
+    "executable": "/home/user/anaconda3/bin/python3",
+    "cpu_count": 6,
+    "cpu_count_logical": 6,
+    "cpu_freq": {
+        "current": 3.8818333333333332,
+        "min": 2200.0,
+        "max": 3600.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 3.6,
+            "min": 2200.0,
+            "max": 3600.0
+        },
+        {
+            "current": 4.09,
+            "min": 2200.0,
+            "max": 3600.0
+        },
+        {
+            "current": 3.6,
+            "min": 2200.0,
+            "max": 3600.0
+        },
+        {
+            "current": 4.091,
+            "min": 2200.0,
+            "max": 3600.0
+        },
+        {
+            "current": 3.836,
+            "min": 2200.0,
+            "max": 3600.0
+        },
+        {
+            "current": 4.091,
+            "min": 2200.0,
+            "max": 3600.0
+        }
+    ],
+    "disk": {
+        "total": 93.31179428100586,
+        "used": 67.69098663330078
+    },
+    "gpu": "NVIDIA GeForce RTX 3060",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 3060",
+            "memory_total": 12884901888
+        }
+    ],
+    "memory": {
+        "total": 31.262237548828125
+    }
+}

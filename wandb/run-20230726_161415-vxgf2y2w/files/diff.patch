@@ -1,0 +1,741 @@
+diff --git a/ML/__init__.py b/ML/__init__.py
+index 27f6152..b60b4f4 100644
+--- a/ML/__init__.py
++++ b/ML/__init__.py
+@@ -18,13 +18,14 @@ from torch.utils.data import DataLoader, Dataset
+ from torchvision import transforms
+ from torchvision.models import *
+ from tqdm import tqdm
+-from wandb import AlertLevel
++from wandb import *
+ from torch.nn import *
+ from torchvision.models import *
+ import torchtext
+ from torchtext.transforms import *
+ from torchtext.models import *
+-from sklearn.metrics import classification_report
++from sklearn.metrics import *
++from torch.hub import *
+ 
+ print(torch.__version__, torchvision.__version__, torchtext.__version__)
+ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+@@ -40,5 +41,4 @@ torch.cuda.manual_seed(42)
+ 
+ from ML.dataset import *
+ from ML.helper_functions import *
+-from ML.metrics import *
+ from ML.modelling import *
+diff --git a/ML/dataset/loader.py b/ML/dataset/loader.py
+index 507c0b6..e8a5ad3 100644
+--- a/ML/dataset/loader.py
++++ b/ML/dataset/loader.py
+@@ -2,7 +2,7 @@ from ML import *
+ 
+ 
+ class Loader(Dataset):
+-    def __init__(self, path: str, transform=None) -> None:
++    def __init__(self, path: str, transform: bool = None) -> None:
+         self.path = path
+         self.transform = transform
+         self.data: pd.DataFrame = pd.read_csv(self.path)
+diff --git a/ML/dataset/main_loaders.py b/ML/dataset/main_loaders.py
+index 6d00aa8..66751bb 100644
+--- a/ML/dataset/main_loaders.py
++++ b/ML/dataset/main_loaders.py
+@@ -1,9 +1,12 @@
+ from ML import *
++from ML.dataset.loader import *
+ 
+ 
+ class Main_DL(Loader):
+-    def __init__(self, train: bool = True, test_split: float = 0.125, seed: int = 42) -> None:
+-        super().__init__()
++    def __init__(
++        self, train: bool = True, test_split: float = 0.125, seed: int = 42, **kwargs
++    ) -> None:
++        super().__init__(**kwargs)
+         self.X = self.data["text"].to_numpy()
+         self.y = self.data["target"].to_numpy()
+         self.train = train
+@@ -12,16 +15,29 @@ class Main_DL(Loader):
+         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+             self.X, self.y, test_size=test_split, random_state=seed
+         )
++        self.X_train, self.X_test, self.y_train, self.y_test = (
++            np.array(self.X_train),
++            np.array(self.X_test),
++            np.array(self.y_train),
++            np.array(self.y_test),
++        )
++        print(len(self.X_train), len(self.X_test), len(self.y_train), len(self.y_test))
+ 
+     def __getitem__(self, index) -> Tuple[torch.tensor, torch.tensor]:
+         if self.train:
++            print(
++                (
++                    torch.tensor(self.transform(self.X_train[index])).shape,
++                    torch.tensor(self.y_train[index]),
++                )
++            )
+             return (
+-                self.transform(self.X_train[index]) if self.transform else self.X_train[index],
+-                self.y_train[index],
++                self.transform(self.X_train[index]),
++                [self.y_train[index]],
+             )
+         return (
+-            self.transform(self.X_test[index]) if self.transform else self.X_test[index],
+-            self.y_test[index],
++            self.transform(self.X_test[index]),
++            [self.y_test[index]],
+         )
+ 
+     def __len__(self) -> int:
+diff --git a/ML/dataset/valid_loaders.py b/ML/dataset/valid_loaders.py
+index 6a4c990..b50b583 100644
+--- a/ML/dataset/valid_loaders.py
++++ b/ML/dataset/valid_loaders.py
+@@ -1,10 +1,11 @@
+ from ML import *
++from ML.dataset.loader import *
+ 
+ 
+ class Valid_Loader(Loader):
+-    def __init__(self) -> None:
+-        super().__init__()
++    def __init__(self, *args) -> None:
++        super().__init__(*args)
+         self.X = self.data["text"].to_numpy()
+ 
+     def __getitem__(self, index) -> np.array:
+-        return self.X[index]
++        return self.transform(self.X[index])
+diff --git a/ML/helper_functions/load_data.py b/ML/helper_functions/load_data.py
+index 6ef820c..5f49fd2 100644
+--- a/ML/helper_functions/load_data.py
++++ b/ML/helper_functions/load_data.py
+@@ -26,33 +26,34 @@ class Load_Data:
+     def ld(self) -> Tuple[DataLoader, DataLoader, DataLoader]:
+         self.train_data_loader = DataLoader(
+             self.dataset_main(
+-                self.main_path,
+-                self.main_transform,
++                path=self.main_path,
++                transform=self.main_transform,
+                 train=True,
+                 test_split=self.test_split,
+                 seed=self.seed,
+             ),
+-            batch_size=self.main_batch_size,
++            # batch_size=self.main_batch_size,
++            batch_size=None,
+             shuffle=True,
+             num_workers=round(os.cpu_count() / 2),
+         )
+         self.test_data_loader = DataLoader(
+             self.dataset_main(
+-                self.main_path,
+-                self.main_transform,
++                path=self.main_path,
++                transform=self.main_transform,
+                 train=False,
+                 test_split=self.test_split,
+                 seed=self.seed,
+             ),
+-            batch_size=self.main_batch_size,
++            # batch_size=self.main_batch_size,
++            batch_size=None,
+             shuffle=True,
+             num_workers=round(os.cpu_count() / 2),
+         )
+         self.valid_data_loader = DataLoader(
+-            self.dataset_valid(
+-                self.valid_path,
+-            ),
+-            batch_size=self.valid_batch_size,
++            self.dataset_valid(self.valid_path, None),
++            # batch_size=self.valid_batch_size,
++            batch_size=None,
+             shuffle=False,
+             num_workers=round(os.cpu_count() / 2),
+         )
+diff --git a/ML/helper_functions/train.py b/ML/helper_functions/train.py
+index c83ebba..ee38df6 100644
+--- a/ML/helper_functions/train.py
++++ b/ML/helper_functions/train.py
+@@ -1,4 +1,5 @@
+ from ML import *
++import torchtext.functional as F
+ 
+ 
+ class Train:
+@@ -24,18 +25,23 @@ class Train:
+ 
+     def train(self, run_name):
+         print(torchinfo.summary(self.model))
+-        wandb.init(project=PROJECT_NAME, entity=run_name)
++        wandb.init(project=PROJECT_NAME, name=run_name, config=self.config)
+         wandb.watch(self.model, log="all")
+         iterator = tqdm(range(self.epochs))
+         for _ in iterator:
+             for i, (X, y) in enumerate(self.train_dataloader):
+-                self.optimizer.zero_grad()
+-                loss = self.criterion(self.model(X), y)
+-                loss.backward()
+-                self.optimizer.step(f"{i}/{len(self.train_dataloader)}")
+-                iterator.set_description()
+-            if self.lr_schedular:
+-                self.lr_schedular.step()
++                # print(X.shape, y.shape)
++                print(np.array(X),y)
++                break
++                # X = F.to_tensor(X, padding_value=1).to("cuda")
++                # y = torch.tensor(y).to("cuda")
++                # self.optimizer.zero_grad()
++                # loss = self.criterion(self.model(X), y)
++                # loss.backward()
++                # self.optimizer.step(f"{i}/{len(self.train_dataloader)}")
++                # iterator.set_description()
++            # if self.lr_schedular:
++            #     self.lr_schedular.step()
+             wandb.log(
+                 Test(
+                     self.test_dataloader, self.valid_dataloader, self.criterion, self.model, "Test"
+diff --git a/ML/helper_functions/transformer.py b/ML/helper_functions/transformer.py
+index 9ee2b3b..2a2ded2 100644
+--- a/ML/helper_functions/transformer.py
++++ b/ML/helper_functions/transformer.py
+@@ -7,9 +7,9 @@ class Transformer:
+         padding_idx: int = 1,
+         beg_idx: int = 0,
+         end_idx: int = 2,
+-        max_seq_len: int = 256,
+-        vocab_path: str = r"https://download.pytorch.org/models/text/xlmr.vocab.pt",
+-        spm_model_path: str = r"https://download.pytorch.org/models/text/xlmr.sentencepiece.bpe.model",
++        max_seq_len: int = 256 - 2,
++        vocab_path=r"https://download.pytorch.org/models/text/xlmr.vocab.pt",
++        spm_model_path=r"https://download.pytorch.org/models/text/xlmr.sentencepiece.bpe.model",
+         tokenizer: torchtext.transforms = SentencePieceTokenizer,
+         vocab_transform: torchtext.transforms = VocabTransform,
+         truncate: torchtext.transforms = Truncate,
+@@ -25,14 +25,35 @@ class Transformer:
+         self.truncate = truncate
+ 
+     def transform(self):
+-        t = torchtext.transforms.Compose(
+-            self.tokenizer(self.vocab_path),
+-            self.vocab_transform(self.spm_model_path),
+-            self.truncate(self.max_seq_len),
+-            AddToken(self.beg_idx, begin=True),
+-            AddToken(self.end_idx, end=True),
++        # t = torchtext.transforms.Sequential(
++        #     self.tokenizer(self.spm_model_path),
++        #     self.vocab_transform(load_state_dict_from_url(self.vocab_path)),
++        #     self.truncate(self.max_seq_len),
++        #     AddToken(self.beg_idx, begin=True),
++        #     AddToken(self.end_idx, begin=False),
++        # )
++        # return t
++        padding_idx = 1
++        bos_idx = 0
++        eos_idx = 2
++        max_seq_len = 256 - 2
++        xlmr_vocab_path = r"https://download.pytorch.org/models/text/xlmr.vocab.pt"
++        xlmr_spm_model_path = (
++            r"https://download.pytorch.org/models/text/xlmr.sentencepiece.bpe.model"
+         )
+-        return t
++
++        text_transform = torchtext.transforms.Sequential(
++            torchtext.transforms.SentencePieceTokenizer(xlmr_spm_model_path),  # split up the data
++            torchtext.transforms.VocabTransform(
++                load_state_dict_from_url(xlmr_vocab_path)
++            ),  # give the data indexes according to the model
++            torchtext.transforms.Truncate(
++                max_seq_len
++            ),  # shortens up the data, interms of lengths, stf...
++            torchtext.transforms.AddToken(token=bos_idx, begin=True),
++            torchtext.transforms.AddToken(token=eos_idx, begin=False),
++        )
++        return text_transform
+ 
+     def model_transform(self, model):
+         return model.transforms()
+diff --git a/ML/modelling/tt.py b/ML/modelling/tt.py
+index bced857..3bd7ef1 100644
+--- a/ML/modelling/tt.py
++++ b/ML/modelling/tt.py
+@@ -9,10 +9,11 @@ class TL(nn.Module):
+         classifier_head: torchtext.models = RobertaClassificationHead,
+         model: torchtext.models = XLMR_BASE_ENCODER,
+     ) -> None:
++        super().__init__()
+         self.num_classes = num_classes
+         self.input_dim = input_dim
+         self.classifier_head = classifier_head(num_classes, input_dim)
+-        self.model = model(self.classifier_head).to(device)
++        self.model = model.get_model(head=self.classifier_head).to(device)
+ 
+     def forward(self, X):
+         return self.model(X)
+diff --git a/learning/00.ipynb b/learning/00.ipynb
+index 9e3eeb4..d9c8ae2 100644
+--- a/learning/00.ipynb
++++ b/learning/00.ipynb
+@@ -18,6 +18,27 @@
+   {
+    "cell_type": "code",
+    "execution_count": 2,
++   "id": "8dd5abe1",
++   "metadata": {},
++   "outputs": [
++    {
++     "data": {
++      "text/plain": [
++       "device(type='cuda')"
++      ]
++     },
++     "execution_count": 2,
++     "metadata": {},
++     "output_type": "execute_result"
++    }
++   ],
++   "source": [
++    "DEVICE"
++   ]
++  },
++  {
++   "cell_type": "code",
++   "execution_count": 3,
+    "id": "bce2fd37-59d6-49cd-9222-8678a5a338ed",
+    "metadata": {
+     "tags": []
+@@ -48,7 +69,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 3,
++   "execution_count": 4,
+    "id": "f5066aae-fe9b-4258-846f-1c6b256f7373",
+    "metadata": {
+     "tags": []
+@@ -60,7 +81,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 4,
++   "execution_count": 5,
+    "id": "8f4ae44f-0a24-4fa7-aa4c-0a737d4ccbff",
+    "metadata": {
+     "tags": []
+@@ -72,7 +93,7 @@
+        "['▁testing', '▁this', '▁transform', 'er']"
+       ]
+      },
+-     "execution_count": 4,
++     "execution_count": 5,
+      "metadata": {},
+      "output_type": "execute_result"
+     }
+@@ -83,7 +104,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 5,
++   "execution_count": 6,
+    "id": "32fdcaf6-8281-4606-918f-5d858b16aaf3",
+    "metadata": {
+     "tags": []
+@@ -95,7 +116,7 @@
+        "[134234, 903, 27198, 56]"
+       ]
+      },
+-     "execution_count": 5,
++     "execution_count": 6,
+      "metadata": {},
+      "output_type": "execute_result"
+     }
+@@ -106,7 +127,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 6,
++   "execution_count": 7,
+    "id": "b3a609ae-4ff3-47e0-ab65-3167ff375451",
+    "metadata": {
+     "tags": []
+@@ -118,7 +139,7 @@
+        "[134234, 903, 27198, 56]"
+       ]
+      },
+-     "execution_count": 6,
++     "execution_count": 7,
+      "metadata": {},
+      "output_type": "execute_result"
+     }
+@@ -129,7 +150,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 7,
++   "execution_count": 8,
+    "id": "0dbb6990-f185-4c02-8531-6bdff17e281f",
+    "metadata": {
+     "tags": []
+@@ -141,7 +162,7 @@
+        "[0, 134234, 903, 27198, 56]"
+       ]
+      },
+-     "execution_count": 7,
++     "execution_count": 8,
+      "metadata": {},
+      "output_type": "execute_result"
+     }
+@@ -152,7 +173,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 8,
++   "execution_count": 9,
+    "id": "7aac3af8-aa08-43cd-8731-d25b5e8841e4",
+    "metadata": {
+     "tags": []
+@@ -164,7 +185,7 @@
+        "[0, 134234, 903, 27198, 56, 2]"
+       ]
+      },
+-     "execution_count": 8,
++     "execution_count": 9,
+      "metadata": {},
+      "output_type": "execute_result"
+     }
+@@ -175,7 +196,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 9,
++   "execution_count": 10,
+    "id": "ec7c13da-ae74-487b-8383-773ccd0a2a3b",
+    "metadata": {
+     "tags": []
+@@ -208,7 +229,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 10,
++   "execution_count": 11,
+    "id": "e9fa6cba-2c27-4b30-b4df-97c1895700b8",
+    "metadata": {
+     "tags": []
+@@ -221,7 +242,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 11,
++   "execution_count": 12,
+    "id": "9161d0dd-8ce1-4ca7-ab2c-461a2236556d",
+    "metadata": {
+     "tags": []
+@@ -266,7 +287,7 @@
+        ")"
+       ]
+      },
+-     "execution_count": 11,
++     "execution_count": 12,
+      "metadata": {},
+      "output_type": "execute_result"
+     }
+@@ -284,7 +305,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 12,
++   "execution_count": 13,
+    "id": "7cc48bad-6a12-4b62-8b71-b704c9714b6c",
+    "metadata": {
+     "tags": []
+@@ -334,7 +355,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 13,
++   "execution_count": 14,
+    "id": "70ea2271-1e76-41b3-9b8f-ad44832687a4",
+    "metadata": {
+     "tags": []
+@@ -343,10 +364,10 @@
+     {
+      "data": {
+       "text/plain": [
+-       "<torch.utils.data.dataloader.DataLoader at 0x7f4a91d20a50>"
++       "<torch.utils.data.dataloader.DataLoader at 0x7fdced661c10>"
+       ]
+      },
+-     "execution_count": 13,
++     "execution_count": 14,
+      "metadata": {},
+      "output_type": "execute_result"
+     }
+@@ -357,12 +378,73 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 14,
++   "execution_count": 15,
+    "id": "2675ed21-e612-43cc-81b7-ad20c8821f46",
+    "metadata": {
+     "tags": []
+    },
+    "outputs": [
++    {
++     "name": "stdout",
++     "output_type": "stream",
++     "text": [
++      "torch.Size([16, 49])\n",
++      "torch.Size([16, 57])\n",
++      "torch.Size([16, 46])\n",
++      "torch.Size([16, 47])\n",
++      "torch.Size([16, 59])\n",
++      "torch.Size([16, 41])\n",
++      "torch.Size([16, 58])\n",
++      "torch.Size([16, 48])\n",
++      "torch.Size([16, 61])\n",
++      "torch.Size([16, 49])\n",
++      "torch.Size([16, 61])\n",
++      "torch.Size([16, 65])\n",
++      "torch.Size([16, 49])\n",
++      "torch.Size([16, 52])\n",
++      "torch.Size([16, 53])\n",
++      "torch.Size([16, 49])\n",
++      "torch.Size([16, 54])\n",
++      "torch.Size([16, 62])\n",
++      "torch.Size([16, 60])\n",
++      "torch.Size([16, 43])\n",
++      "torch.Size([16, 58])\n",
++      "torch.Size([16, 55])\n",
++      "torch.Size([16, 46])\n",
++      "torch.Size([16, 52])\n",
++      "torch.Size([16, 62])\n",
++      "torch.Size([16, 47])\n",
++      "torch.Size([16, 53])\n",
++      "torch.Size([16, 62])\n",
++      "torch.Size([16, 59])\n",
++      "torch.Size([16, 53])\n",
++      "torch.Size([16, 49])\n",
++      "torch.Size([16, 43])\n",
++      "torch.Size([16, 54])\n",
++      "torch.Size([16, 53])\n",
++      "torch.Size([16, 48])\n",
++      "torch.Size([16, 49])\n",
++      "torch.Size([16, 57])\n",
++      "torch.Size([16, 49])\n",
++      "torch.Size([16, 53])\n",
++      "torch.Size([16, 46])\n",
++      "torch.Size([16, 52])\n",
++      "torch.Size([16, 51])\n",
++      "torch.Size([16, 47])\n",
++      "torch.Size([16, 56])\n",
++      "torch.Size([16, 47])\n",
++      "torch.Size([16, 50])\n",
++      "torch.Size([16, 55])\n",
++      "torch.Size([16, 60])\n",
++      "torch.Size([16, 49])\n",
++      "torch.Size([16, 58])\n",
++      "torch.Size([16, 57])\n",
++      "torch.Size([16, 54])\n",
++      "torch.Size([16, 52])\n",
++      "torch.Size([16, 67])\n",
++      "torch.Size([8, 42])\n"
++     ]
++    },
+     {
+      "name": "stderr",
+      "output_type": "stream",
+@@ -375,7 +457,7 @@
+      "name": "stdout",
+      "output_type": "stream",
+      "text": [
+-      "Epoch = [0], loss = [0.6874712423844771], accuracy = [0.5745412844036697]\n"
++      "Epoch = [0], loss = [0.6918775861913508], accuracy = [0.5]\n"
+      ]
+     }
+    ],
+@@ -385,6 +467,7 @@
+     "for e in range(num_epochs):\n",
+     "    for batch in train_dataloader:\n",
+     "        input = F.to_tensor(batch[\"token_ids\"], padding_value=padding_idx).to(DEVICE)\n",
++    "        print(input.shape)\n",
+     "        target = torch.tensor(batch[\"target\"]).to(DEVICE)\n",
+     "        train_step(input, target)\n",
+     "\n",
+@@ -394,7 +477,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 15,
++   "execution_count": 16,
+    "id": "82dc1eca-a43f-4518-90ab-c339d5b6d0e4",
+    "metadata": {
+     "tags": []
+@@ -406,7 +489,7 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 16,
++   "execution_count": 17,
+    "id": "a3b3eafc-7af9-43e3-b84e-b1a7af683d89",
+    "metadata": {},
+    "outputs": [
+@@ -416,7 +499,7 @@
+        "tensor([0, 1, 1, 0, 1, 0, 0, 1], device='cuda:0')"
+       ]
+      },
+-     "execution_count": 16,
++     "execution_count": 17,
+      "metadata": {},
+      "output_type": "execute_result"
+     }
+@@ -425,67 +508,10 @@
+     "target"
+    ]
+   },
+-  {
+-   "cell_type": "code",
+-   "execution_count": 19,
+-   "id": "2a507256",
+-   "metadata": {},
+-   "outputs": [
+-    {
+-     "name": "stdout",
+-     "output_type": "stream",
+-     "text": [
+-      "{'class 0': {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.6666666666666666, 'support': 1}, 'class 1': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 1}, 'class 2': {'precision': 1.0, 'recall': 0.6666666666666666, 'f1-score': 0.8, 'support': 3}, 'accuracy': 0.6, 'macro avg': {'precision': 0.5, 'recall': 0.5555555555555555, 'f1-score': 0.48888888888888893, 'support': 5}, 'weighted avg': {'precision': 0.7, 'recall': 0.6, 'f1-score': 0.6133333333333334, 'support': 5}}\n",
+-      "              precision    recall  f1-score   support\n",
+-      "\n",
+-      "           1       1.00      0.67      0.80         3\n",
+-      "           2       0.00      0.00      0.00         0\n",
+-      "           3       0.00      0.00      0.00         0\n",
+-      "\n",
+-      "   micro avg       1.00      0.67      0.80         3\n",
+-      "   macro avg       0.33      0.22      0.27         3\n",
+-      "weighted avg       1.00      0.67      0.80         3\n",
+-      "\n"
+-     ]
+-    },
+-    {
+-     "name": "stderr",
+-     "output_type": "stream",
+-     "text": [
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n"
+-     ]
+-    }
+-   ],
+-   "source": [
+-    "\n",
+-    "y_true = [0, 1, 2, 2, 2]\n",
+-    "y_pred = [0, 0, 2, 2, 1]\n",
+-    "target_names = ['class 0', 'class 1', 'class 2']\n",
+-    "print(classification_report(y_true, y_pred, target_names=target_names,output_dict=True))\n",
+-    "\n",
+-    "\n",
+-    "\n",
+-    "y_pred = [1, 1, 0]\n",
+-    "y_true = [1, 1, 1]\n",
+-    "print(classification_report(y_true, y_pred, labels=[1, 2, 3]))\n",
+-    "\n"
+-   ]
+-  },
+   {
+    "cell_type": "code",
+    "execution_count": null,
+-   "id": "98396fae",
++   "id": "b3a5834f",
+    "metadata": {},
+    "outputs": [],
+    "source": []
+diff --git a/run.py b/run.py
+index 0c13864..932ef41 100644
+--- a/run.py
++++ b/run.py
+@@ -14,10 +14,10 @@ train_data_loader, test_data_loader, valid_data_loader = Load_Data(
+     ],
+     0.125,
+     42,
+-)
++).ld()
+ model = TL().to(device)
+ learning_rate = 1e-5
+-optimizer = AdamW(model.parameters(), lr=learning_rate)
++optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+ criterion = nn.CrossEntropyLoss()
+ config = {
+     "model": model,
+@@ -26,5 +26,5 @@ config = {
+     "learning_rate": learning_rate,
+ }
+ Train(
+-    model, 10, config, train_dataloader, test_dataloader, valid_dataloader, criterion, optimizer
++    model, 10, config, train_data_loader, test_data_loader, valid_data_loader, criterion, optimizer
+ ).train("baseline")
+diff --git a/unittest/__init__.py b/unittest/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/dataset/__init__.py b/unittest/dataset/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/dataset/test_loaders.py b/unittest/dataset/test_loaders.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/dataset/train_valid_loaders.py b/unittest/dataset/train_valid_loaders.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/helper_functions/__init__.py b/unittest/helper_functions/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/helper_functions/normalize.py b/unittest/helper_functions/normalize.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/helper_functions/test.py b/unittest/helper_functions/test.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/helper_functions/train.py b/unittest/helper_functions/train.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/__init__.py b/unittest/metrics/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/accuracy.py b/unittest/metrics/accuracy.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/f1score.py b/unittest/metrics/f1score.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/loss.py b/unittest/metrics/loss.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/precision.py b/unittest/metrics/precision.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/recall.py b/unittest/metrics/recall.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/modellings/__init__.py b/unittest/modellings/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/modellings/linear.py b/unittest/modellings/linear.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/modellings/tt.py b/unittest/modellings/tt.py
+deleted file mode 100644
+index e69de29..0000000

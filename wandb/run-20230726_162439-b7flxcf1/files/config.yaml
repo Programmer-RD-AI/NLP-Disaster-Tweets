@@ -1,0 +1,76 @@
+wandb_version: 1
+
+model:
+  desc: null
+  value: "TL(\n  (classifier_head): RobertaClassificationHead(\n    (dense): Linear(in_features=768,\
+    \ out_features=768, bias=True)\n    (dropout): Dropout(p=0.1, inplace=False)\n\
+    \    (out_proj): Linear(in_features=768, out_features=2, bias=True)\n    (activation_fn):\
+    \ ReLU()\n  )\n  (model): RobertaModel(\n    (encoder): RobertaEncoder(\n    \
+    \  (transformer): TransformerEncoder(\n        (token_embedding): Embedding(250002,\
+    \ 768, padding_idx=1)\n        (layers): TransformerEncoder(\n          (layers):\
+    \ ModuleList(\n            (0-11): 12 x TransformerEncoderLayer(\n           \
+    \   (self_attn): MultiheadAttention(\n                (out_proj): NonDynamicallyQuantizableLinear(in_features=768,\
+    \ out_features=768, bias=True)\n              )\n              (linear1): Linear(in_features=768,\
+    \ out_features=3072, bias=True)\n              (dropout): Dropout(p=0.1, inplace=False)\n\
+    \              (linear2): Linear(in_features=3072, out_features=768, bias=True)\n\
+    \              (norm1): LayerNorm((768,), eps=1e-05, elementwise_affine=True)\n\
+    \              (norm2): LayerNorm((768,), eps=1e-05, elementwise_affine=True)\n\
+    \              (dropout1): Dropout(p=0.1, inplace=False)\n              (dropout2):\
+    \ Dropout(p=0.1, inplace=False)\n            )\n          )\n        )\n     \
+    \   (positional_embedding): PositionalEmbedding(\n          (embedding): Embedding(514,\
+    \ 768, padding_idx=1)\n        )\n        (embedding_layer_norm): LayerNorm((768,),\
+    \ eps=1e-05, elementwise_affine=True)\n        (dropout): Dropout(p=0.1, inplace=False)\n\
+    \      )\n    )\n    (head): RobertaClassificationHead(\n      (dense): Linear(in_features=768,\
+    \ out_features=768, bias=True)\n      (dropout): Dropout(p=0.1, inplace=False)\n\
+    \      (out_proj): Linear(in_features=768, out_features=2, bias=True)\n      (activation_fn):\
+    \ ReLU()\n    )\n  )\n)"
+criterion:
+  desc: null
+  value: CrossEntropyLoss()
+optimizer:
+  desc: null
+  value: "AdamW (\nParameter Group 0\n    amsgrad: False\n    betas: (0.9, 0.999)\n\
+    \    capturable: False\n    differentiable: False\n    eps: 1e-08\n    foreach:\
+    \ None\n    fused: None\n    lr: 1e-05\n    maximize: False\n    weight_decay:\
+    \ 0.01\n)"
+learning_rate:
+  desc: null
+  value: 1.0e-05
+_wandb:
+  desc: null
+  value:
+    code_path: code/run.py
+    python_version: 3.11.3
+    cli_version: 0.15.5
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1690368879.14577
+    t:
+      1:
+      - 1
+      - 5
+      - 40
+      - 41
+      - 49
+      - 51
+      - 53
+      - 55
+      2:
+      - 1
+      - 5
+      - 40
+      - 41
+      - 49
+      - 51
+      - 53
+      - 55
+      3:
+      - 1
+      - 13
+      - 16
+      - 23
+      4: 3.11.3
+      5: 0.15.5
+      8:
+      - 5

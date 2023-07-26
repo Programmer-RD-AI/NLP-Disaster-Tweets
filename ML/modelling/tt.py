@@ -9,10 +9,11 @@ class TL(nn.Module):
         classifier_head: torchtext.models = RobertaClassificationHead,
         model: torchtext.models = XLMR_BASE_ENCODER,
     ) -> None:
+        super().__init__()
         self.num_classes = num_classes
         self.input_dim = input_dim
         self.classifier_head = classifier_head(num_classes, input_dim)
-        self.model = model(self.classifier_head).to(device)
+        self.model = model.get_model(head=self.classifier_head).to(device)
 
     def forward(self, X):
         return self.model(X)

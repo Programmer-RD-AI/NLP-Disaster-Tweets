@@ -1,0 +1,419 @@
+diff --git a/ML/__init__.py b/ML/__init__.py
+index 27f6152..b60b4f4 100644
+--- a/ML/__init__.py
++++ b/ML/__init__.py
+@@ -18,13 +18,14 @@ from torch.utils.data import DataLoader, Dataset
+ from torchvision import transforms
+ from torchvision.models import *
+ from tqdm import tqdm
+-from wandb import AlertLevel
++from wandb import *
+ from torch.nn import *
+ from torchvision.models import *
+ import torchtext
+ from torchtext.transforms import *
+ from torchtext.models import *
+-from sklearn.metrics import classification_report
++from sklearn.metrics import *
++from torch.hub import *
+ 
+ print(torch.__version__, torchvision.__version__, torchtext.__version__)
+ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+@@ -40,5 +41,4 @@ torch.cuda.manual_seed(42)
+ 
+ from ML.dataset import *
+ from ML.helper_functions import *
+-from ML.metrics import *
+ from ML.modelling import *
+diff --git a/ML/dataset/loader.py b/ML/dataset/loader.py
+index 507c0b6..e8a5ad3 100644
+--- a/ML/dataset/loader.py
++++ b/ML/dataset/loader.py
+@@ -2,7 +2,7 @@ from ML import *
+ 
+ 
+ class Loader(Dataset):
+-    def __init__(self, path: str, transform=None) -> None:
++    def __init__(self, path: str, transform: bool = None) -> None:
+         self.path = path
+         self.transform = transform
+         self.data: pd.DataFrame = pd.read_csv(self.path)
+diff --git a/ML/dataset/main_loaders.py b/ML/dataset/main_loaders.py
+index 6d00aa8..0a1e60a 100644
+--- a/ML/dataset/main_loaders.py
++++ b/ML/dataset/main_loaders.py
+@@ -1,9 +1,12 @@
+ from ML import *
++from ML.dataset.loader import *
+ 
+ 
+ class Main_DL(Loader):
+-    def __init__(self, train: bool = True, test_split: float = 0.125, seed: int = 42) -> None:
+-        super().__init__()
++    def __init__(
++        self, train: bool = True, test_split: float = 0.125, seed: int = 42, **kwargs
++    ) -> None:
++        super().__init__(**kwargs)
+         self.X = self.data["text"].to_numpy()
+         self.y = self.data["target"].to_numpy()
+         self.train = train
+@@ -14,13 +17,14 @@ class Main_DL(Loader):
+         )
+ 
+     def __getitem__(self, index) -> Tuple[torch.tensor, torch.tensor]:
++        print(len(self.transform(self.X_train[index])))
+         if self.train:
+             return (
+-                self.transform(self.X_train[index]) if self.transform else self.X_train[index],
++                self.transform(self.X_train[index]),
+                 self.y_train[index],
+             )
+         return (
+-            self.transform(self.X_test[index]) if self.transform else self.X_test[index],
++            self.transform(self.X_test[index]),
+             self.y_test[index],
+         )
+ 
+diff --git a/ML/dataset/valid_loaders.py b/ML/dataset/valid_loaders.py
+index 6a4c990..b50b583 100644
+--- a/ML/dataset/valid_loaders.py
++++ b/ML/dataset/valid_loaders.py
+@@ -1,10 +1,11 @@
+ from ML import *
++from ML.dataset.loader import *
+ 
+ 
+ class Valid_Loader(Loader):
+-    def __init__(self) -> None:
+-        super().__init__()
++    def __init__(self, *args) -> None:
++        super().__init__(*args)
+         self.X = self.data["text"].to_numpy()
+ 
+     def __getitem__(self, index) -> np.array:
+-        return self.X[index]
++        return self.transform(self.X[index])
+diff --git a/ML/helper_functions/load_data.py b/ML/helper_functions/load_data.py
+index 6ef820c..7d994a2 100644
+--- a/ML/helper_functions/load_data.py
++++ b/ML/helper_functions/load_data.py
+@@ -26,8 +26,8 @@ class Load_Data:
+     def ld(self) -> Tuple[DataLoader, DataLoader, DataLoader]:
+         self.train_data_loader = DataLoader(
+             self.dataset_main(
+-                self.main_path,
+-                self.main_transform,
++                path=self.main_path,
++                transform=self.main_transform,
+                 train=True,
+                 test_split=self.test_split,
+                 seed=self.seed,
+@@ -38,8 +38,8 @@ class Load_Data:
+         )
+         self.test_data_loader = DataLoader(
+             self.dataset_main(
+-                self.main_path,
+-                self.main_transform,
++                path=self.main_path,
++                transform=self.main_transform,
+                 train=False,
+                 test_split=self.test_split,
+                 seed=self.seed,
+@@ -49,9 +49,7 @@ class Load_Data:
+             num_workers=round(os.cpu_count() / 2),
+         )
+         self.valid_data_loader = DataLoader(
+-            self.dataset_valid(
+-                self.valid_path,
+-            ),
++            self.dataset_valid(self.valid_path, None),
+             batch_size=self.valid_batch_size,
+             shuffle=False,
+             num_workers=round(os.cpu_count() / 2),
+diff --git a/ML/helper_functions/train.py b/ML/helper_functions/train.py
+index c83ebba..1a0b8fd 100644
+--- a/ML/helper_functions/train.py
++++ b/ML/helper_functions/train.py
+@@ -24,7 +24,7 @@ class Train:
+ 
+     def train(self, run_name):
+         print(torchinfo.summary(self.model))
+-        wandb.init(project=PROJECT_NAME, entity=run_name)
++        wandb.init(project=PROJECT_NAME, name=run_name, config=self.config)
+         wandb.watch(self.model, log="all")
+         iterator = tqdm(range(self.epochs))
+         for _ in iterator:
+diff --git a/ML/helper_functions/transformer.py b/ML/helper_functions/transformer.py
+index 9ee2b3b..122d282 100644
+--- a/ML/helper_functions/transformer.py
++++ b/ML/helper_functions/transformer.py
+@@ -7,9 +7,9 @@ class Transformer:
+         padding_idx: int = 1,
+         beg_idx: int = 0,
+         end_idx: int = 2,
+-        max_seq_len: int = 256,
+-        vocab_path: str = r"https://download.pytorch.org/models/text/xlmr.vocab.pt",
+-        spm_model_path: str = r"https://download.pytorch.org/models/text/xlmr.sentencepiece.bpe.model",
++        max_seq_len: int = 256-2,
++        vocab_path=r"https://download.pytorch.org/models/text/xlmr.vocab.pt",
++        spm_model_path=r"https://download.pytorch.org/models/text/xlmr.sentencepiece.bpe.model",
+         tokenizer: torchtext.transforms = SentencePieceTokenizer,
+         vocab_transform: torchtext.transforms = VocabTransform,
+         truncate: torchtext.transforms = Truncate,
+@@ -25,12 +25,12 @@ class Transformer:
+         self.truncate = truncate
+ 
+     def transform(self):
+-        t = torchtext.transforms.Compose(
+-            self.tokenizer(self.vocab_path),
+-            self.vocab_transform(self.spm_model_path),
++        t = torchtext.transforms.Sequential(
++            self.tokenizer(self.spm_model_path),
++            self.vocab_transform(load_state_dict_from_url(self.vocab_path)),
+             self.truncate(self.max_seq_len),
+             AddToken(self.beg_idx, begin=True),
+-            AddToken(self.end_idx, end=True),
++            AddToken(self.end_idx, begin=False),
+         )
+         return t
+ 
+diff --git a/ML/modelling/tt.py b/ML/modelling/tt.py
+index bced857..3bd7ef1 100644
+--- a/ML/modelling/tt.py
++++ b/ML/modelling/tt.py
+@@ -9,10 +9,11 @@ class TL(nn.Module):
+         classifier_head: torchtext.models = RobertaClassificationHead,
+         model: torchtext.models = XLMR_BASE_ENCODER,
+     ) -> None:
++        super().__init__()
+         self.num_classes = num_classes
+         self.input_dim = input_dim
+         self.classifier_head = classifier_head(num_classes, input_dim)
+-        self.model = model(self.classifier_head).to(device)
++        self.model = model.get_model(head=self.classifier_head).to(device)
+ 
+     def forward(self, X):
+         return self.model(X)
+diff --git a/learning/00.ipynb b/learning/00.ipynb
+index 9e3eeb4..97a0afc 100644
+--- a/learning/00.ipynb
++++ b/learning/00.ipynb
+@@ -15,6 +15,27 @@
+     "DEVICE = torch.device(\"cuda\") if torch.cuda.is_available() else torch.device(\"cpu\")"
+    ]
+   },
++  {
++   "cell_type": "code",
++   "execution_count": 2,
++   "id": "8dd5abe1",
++   "metadata": {},
++   "outputs": [
++    {
++     "data": {
++      "text/plain": [
++       "device(type='cuda')"
++      ]
++     },
++     "execution_count": 2,
++     "metadata": {},
++     "output_type": "execute_result"
++    }
++   ],
++   "source": [
++    "DEVICE"
++   ]
++  },
+   {
+    "cell_type": "code",
+    "execution_count": 2,
+@@ -343,7 +364,7 @@
+     {
+      "data": {
+       "text/plain": [
+-       "<torch.utils.data.dataloader.DataLoader at 0x7f4a91d20a50>"
++       "<torch.utils.data.dataloader.DataLoader at 0x7fab74cf1150>"
+       ]
+      },
+      "execution_count": 13,
+@@ -375,7 +396,7 @@
+      "name": "stdout",
+      "output_type": "stream",
+      "text": [
+-      "Epoch = [0], loss = [0.6874712423844771], accuracy = [0.5745412844036697]\n"
++      "Epoch = [0], loss = [0.6890365145423195], accuracy = [0.5022935779816514]\n"
+      ]
+     }
+    ],
+@@ -427,43 +448,19 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": 19,
++   "execution_count": 17,
+    "id": "2a507256",
+    "metadata": {},
+    "outputs": [
+     {
+-     "name": "stdout",
+-     "output_type": "stream",
+-     "text": [
+-      "{'class 0': {'precision': 0.5, 'recall': 1.0, 'f1-score': 0.6666666666666666, 'support': 1}, 'class 1': {'precision': 0.0, 'recall': 0.0, 'f1-score': 0.0, 'support': 1}, 'class 2': {'precision': 1.0, 'recall': 0.6666666666666666, 'f1-score': 0.8, 'support': 3}, 'accuracy': 0.6, 'macro avg': {'precision': 0.5, 'recall': 0.5555555555555555, 'f1-score': 0.48888888888888893, 'support': 5}, 'weighted avg': {'precision': 0.7, 'recall': 0.6, 'f1-score': 0.6133333333333334, 'support': 5}}\n",
+-      "              precision    recall  f1-score   support\n",
+-      "\n",
+-      "           1       1.00      0.67      0.80         3\n",
+-      "           2       0.00      0.00      0.00         0\n",
+-      "           3       0.00      0.00      0.00         0\n",
+-      "\n",
+-      "   micro avg       1.00      0.67      0.80         3\n",
+-      "   macro avg       0.33      0.22      0.27         3\n",
+-      "weighted avg       1.00      0.67      0.80         3\n",
+-      "\n"
+-     ]
+-    },
+-    {
+-     "name": "stderr",
+-     "output_type": "stream",
+-     "text": [
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Precision and F-score are ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n",
+-      "/home/user/anaconda3/lib/python3.11/site-packages/sklearn/metrics/_classification.py:1344: UndefinedMetricWarning: Recall and F-score are ill-defined and being set to 0.0 in labels with no true samples. Use `zero_division` parameter to control this behavior.\n",
+-      "  _warn_prf(average, modifier, msg_start, len(result))\n"
++     "ename": "NameError",
++     "evalue": "name 'classification_report' is not defined",
++     "output_type": "error",
++     "traceback": [
++      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
++      "\u001b[0;31mNameError\u001b[0m                                 Traceback (most recent call last)",
++      "Cell \u001b[0;32mIn[17], line 4\u001b[0m\n\u001b[1;32m      2\u001b[0m y_pred \u001b[39m=\u001b[39m [\u001b[39m0\u001b[39m, \u001b[39m0\u001b[39m, \u001b[39m2\u001b[39m, \u001b[39m2\u001b[39m, \u001b[39m1\u001b[39m]\n\u001b[1;32m      3\u001b[0m target_names \u001b[39m=\u001b[39m [\u001b[39m'\u001b[39m\u001b[39mclass 0\u001b[39m\u001b[39m'\u001b[39m, \u001b[39m'\u001b[39m\u001b[39mclass 1\u001b[39m\u001b[39m'\u001b[39m, \u001b[39m'\u001b[39m\u001b[39mclass 2\u001b[39m\u001b[39m'\u001b[39m]\n\u001b[0;32m----> 4\u001b[0m \u001b[39mprint\u001b[39m(classification_report(y_true, y_pred, target_names\u001b[39m=\u001b[39mtarget_names,output_dict\u001b[39m=\u001b[39m\u001b[39mTrue\u001b[39;00m))\n\u001b[1;32m      8\u001b[0m y_pred \u001b[39m=\u001b[39m [\u001b[39m1\u001b[39m, \u001b[39m1\u001b[39m, \u001b[39m0\u001b[39m]\n\u001b[1;32m      9\u001b[0m y_true \u001b[39m=\u001b[39m [\u001b[39m1\u001b[39m, \u001b[39m1\u001b[39m, \u001b[39m1\u001b[39m]\n",
++      "\u001b[0;31mNameError\u001b[0m: name 'classification_report' is not defined"
+      ]
+     }
+    ],
+@@ -484,9 +481,43 @@
+   },
+   {
+    "cell_type": "code",
+-   "execution_count": null,
++   "execution_count": 2,
+    "id": "98396fae",
+    "metadata": {},
++   "outputs": [
++    {
++     "ename": "TypeError",
++     "evalue": "Num2.__init__() takes 2 positional arguments but 3 were given",
++     "output_type": "error",
++     "traceback": [
++      "\u001b[0;31m---------------------------------------------------------------------------\u001b[0m",
++      "\u001b[0;31mTypeError\u001b[0m                                 Traceback (most recent call last)",
++      "Cell \u001b[0;32mIn[2], line 12\u001b[0m\n\u001b[1;32m      9\u001b[0m         \u001b[39mdef\u001b[39;00m \u001b[39mshow\u001b[39m(\u001b[39mself\u001b[39m):\n\u001b[1;32m     10\u001b[0m                 \u001b[39mprint\u001b[39m (\u001b[39mself\u001b[39m\u001b[39m.\u001b[39mn1,\u001b[39mself\u001b[39m\u001b[39m.\u001b[39mn2)\n\u001b[0;32m---> 12\u001b[0m mynumber \u001b[39m=\u001b[39m Num2(\u001b[39m'\u001b[39m\u001b[39mtest\u001b[39m\u001b[39m'\u001b[39m,\u001b[39m8\u001b[39m)\n\u001b[1;32m     13\u001b[0m mynumber\u001b[39m.\u001b[39mshow()\n",
++      "\u001b[0;31mTypeError\u001b[0m: Num2.__init__() takes 2 positional arguments but 3 were given"
++     ]
++    }
++   ],
++   "source": [
++    "class Num:\n",
++    "        def __init__(self,path):\n",
++    "                self.n1 = path\n",
++    "\n",
++    "class Num2(Num):\n",
++    "        def __init__(self,num):\n",
++    "                super().__init__(num)\n",
++    "                self.n2 = num*2\n",
++    "        def show(self):\n",
++    "                print (self.n1,self.n2)\n",
++    "\n",
++    "mynumber = Num2('test',8)\n",
++    "mynumber.show()"
++   ]
++  },
++  {
++   "cell_type": "code",
++   "execution_count": null,
++   "id": "b3a5834f",
++   "metadata": {},
+    "outputs": [],
+    "source": []
+   }
+diff --git a/run.py b/run.py
+index 0c13864..932ef41 100644
+--- a/run.py
++++ b/run.py
+@@ -14,10 +14,10 @@ train_data_loader, test_data_loader, valid_data_loader = Load_Data(
+     ],
+     0.125,
+     42,
+-)
++).ld()
+ model = TL().to(device)
+ learning_rate = 1e-5
+-optimizer = AdamW(model.parameters(), lr=learning_rate)
++optimizer = optim.AdamW(model.parameters(), lr=learning_rate)
+ criterion = nn.CrossEntropyLoss()
+ config = {
+     "model": model,
+@@ -26,5 +26,5 @@ config = {
+     "learning_rate": learning_rate,
+ }
+ Train(
+-    model, 10, config, train_dataloader, test_dataloader, valid_dataloader, criterion, optimizer
++    model, 10, config, train_data_loader, test_data_loader, valid_data_loader, criterion, optimizer
+ ).train("baseline")
+diff --git a/unittest/__init__.py b/unittest/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/dataset/__init__.py b/unittest/dataset/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/dataset/test_loaders.py b/unittest/dataset/test_loaders.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/dataset/train_valid_loaders.py b/unittest/dataset/train_valid_loaders.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/helper_functions/__init__.py b/unittest/helper_functions/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/helper_functions/normalize.py b/unittest/helper_functions/normalize.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/helper_functions/test.py b/unittest/helper_functions/test.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/helper_functions/train.py b/unittest/helper_functions/train.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/__init__.py b/unittest/metrics/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/accuracy.py b/unittest/metrics/accuracy.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/f1score.py b/unittest/metrics/f1score.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/loss.py b/unittest/metrics/loss.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/precision.py b/unittest/metrics/precision.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/metrics/recall.py b/unittest/metrics/recall.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/modellings/__init__.py b/unittest/modellings/__init__.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/modellings/linear.py b/unittest/modellings/linear.py
+deleted file mode 100644
+index e69de29..0000000
+diff --git a/unittest/modellings/tt.py b/unittest/modellings/tt.py
+deleted file mode 100644
+index e69de29..0000000

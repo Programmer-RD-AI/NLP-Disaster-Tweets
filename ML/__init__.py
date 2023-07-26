@@ -18,13 +18,15 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.models import *
 from tqdm import tqdm
-from wandb import AlertLevel
+from wandb import *
 from torch.nn import *
 from torchvision.models import *
 import torchtext
 from torchtext.transforms import *
 from torchtext.models import *
-from sklearn.metrics import classification_report
+from sklearn.metrics import *
+from torch.hub import *
+import torchtext.functional as F
 
 print(torch.__version__, torchvision.__version__, torchtext.__version__)
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
@@ -40,5 +42,4 @@ torch.cuda.manual_seed(42)
 
 from ML.dataset import *
 from ML.helper_functions import *
-from ML.metrics import *
 from ML.modelling import *
