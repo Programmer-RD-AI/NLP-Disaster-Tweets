@@ -27,7 +27,9 @@ from torchtext.models import *
 from sklearn.metrics import *
 from torch.hub import *
 import torchtext.functional as F
+import warnings
 
+warnings.filterwarnings("ignore")
 print(torch.__version__, torchvision.__version__, torchtext.__version__)
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 # os.environ["WANDB_SILENT"] = "true"

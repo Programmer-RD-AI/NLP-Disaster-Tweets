@@ -26,12 +26,12 @@ class Train:
         self.optimizer = optimizer
         self.lr_schedular = lr_schedular
 
-    def train(self, run_name):
+    def train(self, run_name: str) -> None:
         print(torchinfo.summary(self.model))
         wandb.init(project=PROJECT_NAME, name=run_name, config=self.config)
         wandb.watch(self.model, log="all")
         iterator = tqdm(range(self.epochs))
-        for _ in iterator:
+        for epoch in iterator:
             torch.cuda.empty_cache()
             for i, (X, y) in enumerate(self.train_dataloader):
                 y = y[0]
@@ -61,6 +61,13 @@ class Train:
                     "Train",
                 ).test()
             )
+            Test(
+                self.train_dataloader,
+                self.valid_dataloader,
+                self.criterion,
+                self.model,
+                "Train",
+            ).make_predictions(run_name, epoch)
             iterator.set_description(f"Testing Done")
             self.model.train()
         wandb.save()

@@ -49,7 +49,7 @@ class Load_Data:
             num_workers=round(os.cpu_count() / 2),
         )
         self.valid_data_loader = DataLoader(
-            self.dataset_valid(self.valid_path, None),
+            self.dataset_valid(self.valid_path, self.main_transform),
             batch_size=None,
             shuffle=False,
             num_workers=round(os.cpu_count() / 2),

@@ -1,4 +1,5 @@
 from ML import *
+from ML.helper_functions.transformations.randomize import *
 
 
 class Transformer:
@@ -13,6 +14,7 @@ class Transformer:
         tokenizer: torchtext.transforms = SentencePieceTokenizer,
         vocab_transform: torchtext.transforms = VocabTransform,
         truncate: torchtext.transforms = Truncate,
+        randomize: bool = True,
     ) -> None:
         self.padding_idx = padding_idx
         self.beg_idx = beg_idx
@@ -23,16 +25,18 @@ class Transformer:
         self.tokenizer = tokenizer
         self.vocab_transform = vocab_transform
         self.truncate = truncate
+        self.randomize = randomize
 
     def transform(self) -> torchtext.transforms.Sequential:
         t = torchtext.transforms.Sequential(
             self.tokenizer(self.spm_model_path),
             self.vocab_transform(load_state_dict_from_url(self.vocab_path)),
             self.truncate(self.max_seq_len),
+            Randomize() if self.randomize else Randomize(0),
             AddToken(self.beg_idx, begin=True),
             AddToken(self.end_idx, begin=False),
         )
         return t
 
-    def model_transform(self, model):
+    def model_transform(self, model) -> torchtext.transforms:
         return model.transforms()

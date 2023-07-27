@@ -27,4 +27,4 @@ config = {
 }
 Train(
     model, 10, config, train_data_loader, test_data_loader, valid_data_loader, criterion, optimizer
-).train("baseline")
+).train("wit_randomize")

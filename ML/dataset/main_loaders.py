@@ -29,7 +29,7 @@ class Main_DL(Loader):
         self.batch_size = batch_size
         self.get_batches()
 
-    def get_batches(self):
+    def get_batches(self) -> None:
         X = self.X_train if self.train else self.X_test
         y = self.y_train if self.train else self.y_test
         X_batches = []
