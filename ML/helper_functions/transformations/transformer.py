@@ -38,5 +38,5 @@ class Transformer:
         )
         return t
 
-    def model_transform(self, model) -> torchtext.transforms:
-        return model.transforms()
+    def model_transform(self, model=XLMR_BASE_ENCODER) -> torchtext.transforms:
+        return model.transform()

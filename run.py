@@ -1,24 +1,33 @@
 from ML import *
 
-lrs = [1e-0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]
-for lr in lrs:
+
+def train(
+    batch_size: int = 32,
+    lr: float = 0.01,
+    test_split: float = 0.25,
+    optimizer=optim.Adam,
+    epochs: int = 5,
+    name: str = "",
+    lr_schedular=None,
+    transforms=None,
+):
     train_data_loader, test_data_loader, valid_data_loader = Load_Data(
         Main_DL,
         Valid_Loader,
         [
             "/media/user/Main/Programmer-RD-AI/Programming/Learning/JS/NLP-Disaster-Tweets/ML/data/train.csv",
-            32,
-            Transformer().transform(),
+            batch_size,
+            transforms,
         ],
         [
             "/media/user/Main/Programmer-RD-AI/Programming/Learning/JS/NLP-Disaster-Tweets/ML/data/test.csv",
             1,
         ],
-        0.25,
+        test_split,
         42,
     ).ld()
     model = TL().to(device)
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    optimizer = optimizer(model.parameters(), lr=lr)
     criterion = nn.CrossEntropyLoss()
     config = {
         "model": model,
@@ -28,11 +37,58 @@ for lr in lrs:
     }
     Train(
         model,
-        5,
+        epochs,
         config,
         train_data_loader,
         test_data_loader,
         valid_data_loader,
         criterion,
         optimizer,
-    ).train(f"{lr}")
+    ).train(f"{name}")
+
+
+train(
+    transforms=Transformer().transform(),
+    batch_size=16,
+    lr=1e-3,
+    test_split=0.25,
+    optimizer=optim.Adam,
+    lr_schedular=None,
+    name=f"1e-3",
+)
+train(
+    transforms=Transformer().transform(),
+    batch_size=16,
+    lr=1e-4,
+    test_split=0.25,
+    optimizer=optim.Adam,
+    lr_schedular=None,
+    name=f"1e-4",
+)
+train(
+    transforms=Transformer().transform(),
+    batch_size=16,
+    lr=1e-5,
+    test_split=0.25,
+    optimizer=optim.Adam,
+    lr_schedular=None,
+    name=f"1e-5",
+)
+train(
+    transforms=Transformer().transform(),
+    batch_size=16,
+    lr=1e-6,
+    test_split=0.25,
+    optimizer=optim.Adam,
+    lr_schedular=None,
+    name=f"1e-6",
+)
+train(
+    transforms=Transformer().transform(),
+    batch_size=16,
+    lr=1e-7,
+    test_split=0.25,
+    optimizer=optim.Adam,
+    lr_schedular=None,
+    name=f"1e-7",
+)

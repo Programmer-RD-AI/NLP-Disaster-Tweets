@@ -14,7 +14,7 @@ class Train:
         valid_dataloader: DataLoader,
         criterion: torch.nn,
         optimizer: torch.optim,
-        lr_schedular: bool = None,
+        lr_schedular=None,
     ) -> None:
         self.model = model
         self.epochs = epochs
@@ -75,4 +75,9 @@ class Train:
         self.save_model(run_name)
 
     def save_model(self, run_name: str) -> None:
-        pass
+        if run_name not in os.listdir("./ML/predictions/"):
+            os.mkdir(f"./ML/predictions/{run_name}")
+        torch.save(self.model, f"./ML/predictions/{run_name}/model.pt")
+        torch.save(self.model, f"./ML/predictions/{run_name}/model.pth")
+        torch.save(self.model.state_dict(), f"./ML/predictions/{run_name}/model_state_dict.pt")
+        torch.save(self.model.state_dict(), f"./ML/predictions/{run_name}/model_state_dict.pth")
