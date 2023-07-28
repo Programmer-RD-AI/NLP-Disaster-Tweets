@@ -37,7 +37,7 @@ os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 # os.environ["WANDB_SILENT"] = "true"
 PROJECT_NAME = "NLP-Disaster Tweets"
 device = torch.device("cuda")
-BATCH_SIZE = 32
+BATCH_SIZE = 16
 torch.backends.cudnn.benchmark = True
 torch.cuda.empty_cache()
 torch.manual_seed(42)

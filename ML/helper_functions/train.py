@@ -43,8 +43,6 @@ class Train:
                 loss.backward()
                 self.optimizer.step()
                 iterator.set_description(f"{i}/{len(self.train_dataloader)}")
-            if self.lr_schedular:
-                self.lr_schedular.step()
             iterator.set_description(f"Testing...")
             self.model.eval()
             wandb.log(

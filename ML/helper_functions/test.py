@@ -26,7 +26,7 @@ class Test:
         with torch.inference_mode():
             for X, y in self.test_dataloader:
                 y = y[0]
-                X = F.to_tensor(X, padding_value=1).to("cuda")
+                X = F.to_tensor(X, padding_value=1).to(device)
                 y = torch.tensor(y).to("cuda")
                 preds = torch.argmax(torch.softmax(self.model(X), dim=1), dim=1)
                 loss = self.criterion(preds.float(), y.view(-1, 1).squeeze(1).float())
