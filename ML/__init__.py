@@ -28,9 +28,11 @@ from sklearn.metrics import *
 from torch.hub import *
 import torchtext.functional as F
 import warnings
+import torch.multiprocessing
 
-warnings.filterwarnings("ignore")
 print(torch.__version__, torchvision.__version__, torchtext.__version__)
+torch.multiprocessing.set_sharing_strategy("file_system")
+warnings.filterwarnings("ignore")
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 # os.environ["WANDB_SILENT"] = "true"
 PROJECT_NAME = "NLP-Disaster Tweets"

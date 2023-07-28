@@ -72,3 +72,7 @@ class Train:
             self.model.train()
         wandb.save()
         wandb.finish()
+        self.save_model(run_name)
+
+    def save_model(self, run_name: str) -> None:
+        pass

@@ -1,6 +1,8 @@
 from ML import *
 from ML.dataset.loader import *
 
+"""Contains the main dataloader used to load the train and testing data"""
+
 
 class Main_DL(Loader):
     def __init__(
@@ -11,6 +13,15 @@ class Main_DL(Loader):
         batch_size: int = 32,
         **kwargs,
     ) -> None:
+        """initalization of the Main Dataloader which inherits from the `Loader` class
+
+        Keyword arguments:
+        train -- bool, if the data is for training or testing
+        test_split -- float between 0 and 1
+        seed -- int, to prevent change of results
+        batch_size -- int, the size of the batches
+        Return: None
+        """
         super().__init__(**kwargs)
         self.X = self.data["text"].to_numpy()
         self.y = self.data["target"].to_numpy()
@@ -30,6 +41,7 @@ class Main_DL(Loader):
         self.get_batches()
 
     def get_batches(self) -> None:
+        """create the batches for training"""
         X = self.X_train if self.train else self.X_test
         y = self.y_train if self.train else self.y_test
         X_batches = []
@@ -53,6 +65,12 @@ class Main_DL(Loader):
             self.y_test = np.array(y_batches)
 
     def __getitem__(self, index) -> Tuple[torch.tensor, torch.tensor]:
+        """get an specific item using an specific index
+
+        Keyword arguments:
+        index -- the index of the item to retrieve
+        Return: Tuple
+        """
         if self.train:
             return (
                 self.X_train[index],
@@ -64,4 +82,8 @@ class Main_DL(Loader):
         )
 
     def __len__(self) -> int:
+        """get the length / no. of batches of the dataset
+
+        Return: Int
+        """
         return len(self.y_train) if self.train else len(self.y_test)

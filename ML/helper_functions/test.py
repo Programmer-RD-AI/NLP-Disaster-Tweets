@@ -43,7 +43,6 @@ class Test:
                 f1_tot += f1score
                 l_tot += loss.item()
                 n += 1
-        print(loss.item(), l_tot, l_tot / n)
         return {
             f"{self.name} precision": p_tot / n,
             f"{self.name} recall": r_tot / n,
@@ -55,10 +54,10 @@ class Test:
     def make_predictions(self, run_name: str, epoch: int) -> pd.DataFrame:
         ids = []
         target = []
-        for i, X in enumerate(self.valid_dataloader):
+        for _id, X in self.valid_dataloader:
             X = F.to_tensor(X, padding_value=1).to("cuda")
             pred = torch.argmax(torch.softmax(self.model(X), dim=1), dim=1).squeeze().cpu().item()
-            ids.append(i)
+            ids.append(_id.item())
             target.append(pred)
         if run_name not in os.listdir("./ML/predictions/"):
             os.mkdir(f"./ML/predictions/{run_name}")
