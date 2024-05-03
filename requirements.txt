@@ -363,7 +363,7 @@ torchinfo==1.8.0
 torchtext==0.15.2
 torchvision==0.15.2
 tornado==6.2
-tqdm==4.65.0
+tqdm==4.66.3
 traitlets==5.7.1
 transformers==4.28.1
 triton==2.0.0
