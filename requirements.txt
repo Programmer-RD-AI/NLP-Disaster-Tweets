@@ -308,7 +308,7 @@ scikit-image==0.20.0
 scikit-learn==1.2.2
 scikit-learn-intelex==20230426.111612
 scipy==1.10.1
-Scrapy==2.8.0
+Scrapy==2.11.2
 seaborn==0.12.2
 SecretStorage==3.3.1
 Send2Trash==1.8.0
