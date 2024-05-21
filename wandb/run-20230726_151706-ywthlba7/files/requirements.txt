@@ -293,7 +293,7 @@ queuelib==1.5.0
 regex==2022.7.9
 requests-file==1.5.1
 requests-toolbelt==0.9.1
-requests==2.29.0
+requests==2.32.0
 responses==0.13.3
 rfc3339-validator==0.1.4
 rfc3986-validator==0.1.1
