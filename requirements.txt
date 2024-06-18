@@ -305,7 +305,7 @@ s3fs==2023.4.0
 sacremoses==0.0.43
 safetensors==0.3.1
 scikit-image==0.20.0
-scikit-learn==1.2.2
+scikit-learn==1.5.0
 scikit-learn-intelex==20230426.111612
 scipy==1.10.1
 Scrapy==2.8.0
