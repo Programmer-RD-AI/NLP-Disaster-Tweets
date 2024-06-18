@@ -372,7 +372,7 @@ typing_extensions==4.6.3
 uc-micro-py==1.0.1
 ujson==5.4.0
 Unidecode==1.2.0
-urllib3==1.26.16
+urllib3==1.26.19
 w3lib==1.21.0
 wandb==0.15.5
 watchdog==2.1.6
