@@ -367,7 +367,7 @@ tqdm==4.65.0
 traitlets==5.7.1
 transformers==4.28.1
 triton==2.0.0
-twisted==22.10.0
+twisted==24.3.0
 typing-extensions==4.6.3
 uc-micro-py==1.0.1
 ujson==5.4.0
