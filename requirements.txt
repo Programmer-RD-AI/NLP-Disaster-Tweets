@@ -282,7 +282,7 @@ pytz==2022.7
 pyviz-comms==2.3.0
 PyWavelets==1.4.1
 pyxdg==0.27
-PyYAML==6.0
+PyYAML==6.0.2
 pyzmq==25.1.0
 QDarkStyle==3.0.2
 qstylizer==0.2.2
