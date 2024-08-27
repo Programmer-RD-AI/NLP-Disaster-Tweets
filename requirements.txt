@@ -164,7 +164,7 @@ lmdb==1.4.1
 locket==1.0.0
 lxml==4.9.1
 lz4==4.3.2
-Markdown==3.4.1
+Markdown==3.7
 markdown-it-py==2.2.0
 MarkupSafe==2.1.1
 matplotlib==3.7.1
