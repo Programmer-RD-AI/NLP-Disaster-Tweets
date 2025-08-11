@@ -286,7 +286,7 @@ PyYAML==6.0
 pyzmq==25.1.0
 QDarkStyle==3.0.2
 qstylizer==0.2.2
-QtAwesome==1.2.2
+QtAwesome==1.4.0
 qtconsole==5.4.2
 QtPy==2.2.0
 queuelib==1.5.0
